@@ -3,9 +3,10 @@ import { ArrowLeft, Mail, Phone } from "lucide-react";
 
 interface VerifyCodeProps {
   email: string;
-  telefono: string; // 👈 Agregamos teléfono como prop
+  telefono: string;
   onBack: () => void;
   onSuccess: () => void;
+  siteUrl: string; // 
 }
 
 const VerifyCode = ({ email, telefono, onBack, onSuccess }: VerifyCodeProps) => {
