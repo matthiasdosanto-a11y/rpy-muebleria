@@ -4,6 +4,7 @@ import { Mail, ArrowLeft } from "lucide-react";
 interface ForgotPasswordProps {
   onBack: () => void;
   onCodeSent: (email: string) => void;
+   siteUrl: string; //
 }
 
 const ForgotPassword = ({ onBack, onCodeSent }: ForgotPasswordProps) => {
