@@ -6,9 +6,16 @@ interface LoginFormProps {
   onForgotClick: () => void;
   onSuccess: () => void;
   onVerify: (email: string) => void;
+   siteUrl: string;
 }
 
-const LoginForm = ({ onRegisterClick, onForgotClick, onSuccess, onVerify }: LoginFormProps) => {
+const LoginForm = ({ 
+  onRegisterClick, 
+  onForgotClick, 
+  onSuccess, 
+  onVerify,
+  siteUrl //
+}: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
