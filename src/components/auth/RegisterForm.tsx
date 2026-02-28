@@ -5,8 +5,9 @@ import 'react-international-phone/style.css';
 
 interface RegisterFormProps {
   onLoginClick: () => void;
-  onSuccess: (email: string, telefono: string) => void; // 👈 MODIFICADO: ahora recibe email y teléfono
+  onSuccess: (email: string, telefono: string) => void;
   setEmail: (email: string) => void;
+  siteUrl: string; // 👈 DEBE EXISTIR
 }
 
 const RegisterForm = ({ onLoginClick, onSuccess, setEmail }: RegisterFormProps) => {
