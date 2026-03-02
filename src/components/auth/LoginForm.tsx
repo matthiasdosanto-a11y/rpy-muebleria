@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { supabase } from "../../lib/supabaseClient";
 
 interface LoginFormProps {
   onRegisterClick: () => void;
   onForgotClick: () => void;
   onSuccess: () => void;
   onVerify: (email: string) => void;
-   siteUrl: string;
+  siteUrl: string;
 }
 
-const LoginForm = ({ 
-  onRegisterClick, 
-  onForgotClick, 
-  onSuccess, 
+const LoginForm = ({
+  onRegisterClick,
+  onForgotClick,
+  onSuccess,
   onVerify,
-  siteUrl //
 }: LoginFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,18 +23,11 @@ const LoginForm = ({
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Simulación de usuarios registrados (esto debería venir de tu backend)
-  const registeredUsers = [
-    { email: "test@test.com", password: "Test123" },
-    { email: "usuario@ejemplo.com", password: "Usuario123" },
-  ];
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
-    // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Formato de correo inválido");
@@ -42,18 +35,9 @@ const LoginForm = ({
       return;
     }
 
-    // Simular verificación de email (esto debería ser una llamada a tu API)
-    setTimeout(() => {
-      const userExists = registeredUsers.some(u => u.email === email);
-      
-      if (userExists) {
-        setStep("password");
-        setError("");
-      } else {
-        setError("❌ Correo no registrado. ¿Deseas crear una cuenta?");
-      }
-      setIsLoading(false);
-    }, 1000);
+    // Pasamos directo a contraseña; Supabase verificará si el usuario existe
+    setStep("password");
+    setIsLoading(false);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -61,17 +45,38 @@ const LoginForm = ({
     setError("");
     setIsLoading(true);
 
-    // Simular verificación de contraseña
-    setTimeout(() => {
-      const user = registeredUsers.find(u => u.email === email);
-      
-      if (user && user.password === password) {
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        // Mensaje común cuando el correo no está confirmado
+        if (authError.message.toLowerCase().includes("email not confirmed")) {
+          setError("Tu correo aún no está verificado. Revisa tu bandeja de entrada.");
+          onVerify(email);
+        } else if (
+          authError.message.toLowerCase().includes("invalid login credentials")
+        ) {
+          setError("Correo o contraseña incorrectos.");
+        } else {
+          setError(authError.message);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      if (data?.session) {
         onSuccess();
       } else {
-        setError("❌ Contraseña incorrecta");
+        setError("No se pudo iniciar sesión. Intenta de nuevo.");
       }
+    } catch {
+      setError("Ocurrió un error inesperado. Intenta de nuevo.");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -90,7 +95,10 @@ const LoginForm = ({
               Correo electrónico
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Mail
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={18}
+              />
               <input
                 type="email"
                 value={email}
@@ -105,14 +113,6 @@ const LoginForm = ({
           {error && (
             <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">
               {error}
-              {error.includes("crear una cuenta") && (
-                <button
-                  onClick={onRegisterClick}
-                  className="ml-2 text-primary font-semibold hover:underline"
-                >
-                  Registrarse
-                </button>
-              )}
             </div>
           )}
 
@@ -131,7 +131,10 @@ const LoginForm = ({
               Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Lock
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={18}
+              />
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
