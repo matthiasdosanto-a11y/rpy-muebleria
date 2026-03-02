@@ -3,16 +3,20 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom"; // 👈 Agregamos Routes y Route aquí
 import { CartProvider } from "@/contexts/CartContext";
+
+// 👇 NUEVOS IMPORTS
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { supabase } from './lib/supabaseClient'; // 👈 Importamos Supabase
+import { supabase } from './lib/supabaseClient';
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // 👇 Prueba de conexión con Supabase
   useEffect(() => {
     const testConnection = async () => {
       try {
@@ -33,19 +37,29 @@ const App = () => {
     testConnection()
   }, [])
 
-  // 👇 Este es el return que ya tenías
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <CartProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <HashRouter> {/* 👈 HashRouter (CORRECTO) */}
             <Routes>
+              {/* Rutas Públicas */}
               <Route path="/" element={<Index />} />
               <Route path="*" element={<NotFound />} />
+
+              {/* 👇 NUEVA RUTA PROTEGIDA DE ADMIN */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
-          </BrowserRouter>
+          </HashRouter> {/* 👈 Cierre correcto (era BrowserRouter antes) */}
         </CartProvider>
       </TooltipProvider>
     </QueryClientProvider>
