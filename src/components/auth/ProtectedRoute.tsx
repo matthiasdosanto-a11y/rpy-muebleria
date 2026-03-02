@@ -37,22 +37,35 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
         return;
       }
 
-      // Consultar el rol
-      const { data: profile, error } = await supabase
+      // 👇 CONSULTA SIMPLIFICADA: Primero obtenemos el role_id
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role_id, roles(name)")
+        .select("role_id")
         .eq("id", session.user.id)
         .single();
 
-      if (error || !profile) {
-        console.error("Error al cargar perfil o no existe:", error);
+      if (profileError || !profile) {
+        console.error("Error al cargar perfil:", profileError);
         setIsAuthorized(false);
         setLoading(false);
         return;
       }
 
-      // 👇 CORRECCIÓN: Usamos 'as any' para evitar errores de tipos con la relación 'roles'
-      const roleName = (profile.roles as any)?.name;
+      // 👇 Luego consultamos la tabla roles para obtener el nombre
+      const { data: role, error: roleError } = await supabase
+        .from("roles")
+        .select("name")
+        .eq("id", profile.role_id)
+        .single();
+
+      if (roleError || !role) {
+        console.error("Error al cargar rol:", roleError);
+        setIsAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      const roleName = role.name;
 
       if (roleName === requiredRole) {
         setIsAuthorized(true);
@@ -78,7 +91,6 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   }
 
   if (!isAuthorized) {
-    // Redirigir al home si no tiene permiso
     return <Navigate to="/" replace />;
   }
 
