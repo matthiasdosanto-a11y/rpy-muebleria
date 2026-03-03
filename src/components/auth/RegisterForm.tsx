@@ -1,17 +1,24 @@
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Key } from "lucide-react";
 import { PhoneInput } from "react-international-phone";
 import "react-international-phone/style.css";
-import { supabase } from "../../lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+import {
+    validatePasswordStrength,
+    isCommonPassword,
+    estimateCrackTime,
+    generateSecurePassword,
+    type PasswordValidationResult
+} from "@/lib/passwordValidation";
 
 interface RegisterFormProps {
-  onLoginClick: () => void;
-  onSuccess: (email: string, telefono: string) => void;
-  setEmail: (email: string) => void;
-  siteUrl: string;
+    onLoginClick: () => void;
+    onSuccess: (email: string, telefono: string) => void;
+    setEmail: (email: string) => void;
+    siteUrl?: string;
 }
 
-const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFormProps) => {
+const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl = window.location.origin }: RegisterFormProps) => {
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -27,6 +34,10 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
   const [isLoading, setIsLoading] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  
+  const [passwordStrength, setPasswordStrength] = useState<PasswordValidationResult>(
+    validatePasswordStrength('')
+  );
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -44,9 +55,19 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
       newErrors.telefono = "Número inválido (debe tener entre 8 y 15 dígitos)";
     }
 
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-    if (!passwordRegex.test(formData.password)) {
-      newErrors.password = "Mínimo 8 caracteres, 1 mayúscula y 1 número";
+    // Validación de contraseña mejorada
+    if (!formData.password) {
+      newErrors.password = "La contraseña es requerida";
+    } else {
+      const strength = validatePasswordStrength(formData.password);
+      if (!strength.isValid) {
+        newErrors.password = strength.message;
+      }
+      
+      // Verificar si es una contraseña común
+      if (isCommonPassword(formData.password)) {
+        newErrors.password = "Esta contraseña es demasiado común. Elige una más segura.";
+      }
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -102,6 +123,11 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
       [name]: value,
     }));
 
+    // Si es el campo de contraseña, actualizar la fortaleza
+    if (name === "password") {
+      setPasswordStrength(validatePasswordStrength(value));
+    }
+
     if (errors[name]) {
       setErrors((prev) => {
         const updated = { ...prev };
@@ -111,10 +137,34 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
     }
   };
 
+  // Función para generar contraseña segura
+  const handleGeneratePassword = () => {
+    const newPassword = generateSecurePassword(12);
+    setFormData((prev) => ({ ...prev, password: newPassword, confirmPassword: newPassword }));
+    setPasswordStrength(validatePasswordStrength(newPassword));
+  };
+
+  // Función para obtener el color según la fortaleza
+  const getStrengthColor = (score: number) => {
+    if (score <= 2) return 'bg-red-500';
+    if (score === 3) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  // Función para obtener el texto según la fortaleza
+  const getStrengthText = (score: number) => {
+    if (score <= 2) return 'text-red-600';
+    if (score === 3) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
   return (
     <div className="space-y-4">
       <div className="text-center">
         <h2 className="text-xl font-bold text-foreground">Crear cuenta</h2>
+        <p className="text-xs text-muted-foreground mt-1">
+          Plan gratuito - Recomendamos usar contraseñas seguras
+        </p>
       </div>
 
       {generalError && (
@@ -208,7 +258,72 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+          
+          {/* Indicador de fortaleza de contraseña */}
+          {formData.password && passwordStrength && (
+            <div className="mt-2 space-y-2">
+              {/* Barra de progreso */}
+              <div className="flex gap-1 h-1.5">
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <div
+                    key={level}
+                    className={`flex-1 rounded-full transition-all ${
+                      level <= passwordStrength.score
+                        ? getStrengthColor(passwordStrength.score)
+                        : 'bg-gray-200 dark:bg-gray-700'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Mensaje de fortaleza */}
+              <p className={`text-xs ${getStrengthText(passwordStrength.score)}`}>
+                {passwordStrength.message}
+              </p>
+
+              {/* Tiempo estimado para romper la contraseña */}
+              {passwordStrength.score >= 3 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  🔒 Tiempo estimado para romper: {estimateCrackTime(formData.password)}
+                </p>
+              )}
+
+              {/* Requisitos individuales - con verificación opcional */}
+              {passwordStrength.checks && (
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  <span className={passwordStrength.checks.length ? 'text-green-600' : 'text-gray-400'}>
+                    ✓ 8+ caracteres
+                  </span>
+                  <span className={passwordStrength.checks.uppercase ? 'text-green-600' : 'text-gray-400'}>
+                    ✓ Mayúscula
+                  </span>
+                  <span className={passwordStrength.checks.lowercase ? 'text-green-600' : 'text-gray-400'}>
+                    ✓ Minúscula
+                  </span>
+                  <span className={passwordStrength.checks.numbers ? 'text-green-600' : 'text-gray-400'}>
+                    ✓ Número
+                  </span>
+                  <span className={passwordStrength.checks.special ? 'text-green-600' : 'text-gray-400'}>
+                    ✓ Símbolo
+                  </span>
+                </div>
+              )}
+
+              {/* Botón para generar contraseña segura */}
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                className="flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+              >
+                <Key size={12} />
+                Generar contraseña segura
+              </button>
+            </div>
+          )}
+          
+          {errors.password && !formData.password && (
+            <p className="text-xs text-red-500 mt-1">{errors.password}</p>
+          )}
         </div>
 
         <div>
@@ -230,7 +345,21 @@ const RegisterForm = ({ onLoginClick, onSuccess, setEmail, siteUrl }: RegisterFo
               {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>}
+          {errors.confirmPassword && (
+            <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
+          )}
+          {/* Indicador de coincidencia */}
+          {formData.confirmPassword && formData.password && (
+            <p className={`text-xs mt-1 ${
+              formData.password === formData.confirmPassword 
+                ? 'text-green-600' 
+                : 'text-red-600'
+            }`}>
+              {formData.password === formData.confirmPassword 
+                ? '✓ Las contraseñas coinciden' 
+                : '✗ Las contraseñas no coinciden'}
+            </p>
+          )}
         </div>
 
         <button
