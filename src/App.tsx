@@ -3,13 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom"; // 👈 Agregamos Routes y Route aquí
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 
-// 👇 NUEVOS IMPORTS
-import { AdminDashboard } from "./pages/AdminDashboard";
+// 👇 IMPORTS CORRECTOS
+import { AdminDashboard } from "./pages/AdminDashboard"; // Debe existir este archivo
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { supabase } from './lib/supabaseClient';
@@ -43,23 +42,23 @@ const App = () => {
         <CartProvider>
           <Toaster />
           <Sonner />
-          <HashRouter> {/* 👈 HashRouter (CORRECTO) */}
+          <HashRouter>
             <Routes>
               {/* Rutas Públicas */}
               <Route path="/" element={<Index />} />
               <Route path="*" element={<NotFound />} />
 
-              {/* 👇 NUEVA RUTA PROTEGIDA DE ADMIN */}
+              {/* 👇 RUTA PROTEGIDA CORREGIDA */}
               <Route
                 path="/admin"
                 element={
                   <ProtectedRoute requiredRole="admin">
-                    <AdminDashboard />
+                    <AdminDashboard /> {/* 👈 AHORA COINCIDE CON LA IMPORTACIÓN */}
                   </ProtectedRoute>
                 }
               />
             </Routes>
-          </HashRouter> {/* 👈 Cierre correcto (era BrowserRouter antes) */}
+          </HashRouter>
         </CartProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -17,7 +17,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
 
-  // 👇 AGREGAMOS LA URL BASE (toma de .env o usa la actual)
+  // URL base (toma de .env o usa la actual)
   const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
 
   useEffect(() => {
@@ -40,12 +40,24 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
           <LoginForm
             onRegisterClick={() => setView("register")}
             onForgotClick={() => setView("forgot")}
-            onSuccess={onClose}
+            // ✅ REDIRECCIÓN CORREGIDA Y MEJORADA
+            onSuccess={() => {
+              console.log("✅ LOGIN CORRECTO. Ejecutando onSuccess...");
+              
+              // 1. Cerrar modal
+              onClose();
+              
+              // 2. Redirección simple y directa
+              setTimeout(() => {
+                console.log("🔄 Redirigiendo a /#/admin...");
+                window.location.href = '/#/admin';
+              }, 100);
+            }}
             onVerify={(email) => {
               setEmail(email);
               setView("verify");
             }}
-            siteUrl={siteUrl} // 👈 PASAMOS LA URL
+            siteUrl={siteUrl}
           />
         );
 
@@ -59,7 +71,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               setView("verify");
             }}
             setEmail={setEmail}
-            siteUrl={siteUrl} // 👈 PASAMOS LA URL
+            siteUrl={siteUrl}
           />
         );
 
@@ -71,7 +83,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
               setEmail(email);
               setView("verify");
             }}
-            siteUrl={siteUrl} // 👈 PASAMOS LA URL
+            siteUrl={siteUrl}
           />
         );
 
@@ -82,7 +94,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             telefono={telefono}
             onBack={() => setView("login")}
             onSuccess={onClose}
-            siteUrl={siteUrl} // 👈 PASAMOS LA URL
+            siteUrl={siteUrl}
           />
         );
 
