@@ -19,7 +19,6 @@ const InfoCards = () => {
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      // Verificar estado inicial
       handleScroll();
       return () => container.removeEventListener('scroll', handleScroll);
     }
@@ -27,7 +26,7 @@ const InfoCards = () => {
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 300; // Ajusta este valor según necesites
+      const scrollAmount = 300;
       const newScrollLeft = scrollContainerRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
       scrollContainerRef.current.scrollTo({
         left: newScrollLeft,
@@ -87,9 +86,9 @@ const InfoCards = () => {
   ];
 
   return (
-    <section className="py-8 -mt-48 relative z-10">
+    <section className="py-8 -mt-24 sm:-mt-32 md:-mt-40 lg:-mt-48 relative z-10">
       <div className="container mx-auto px-4">
-        {/* Flechas de navegación - solo visibles en desktop/tablet */}
+        {/* Flechas de navegación */}
         <div className="hidden md:block relative">
           {showLeftArrow && (
             <button
@@ -167,7 +166,7 @@ const InfoCards = () => {
           ))}
         </div>
 
-        {/* Indicadores de página (puntos) - solo visible en móvil */}
+        {/* Indicadores de página */}
         <div className="flex justify-center gap-2 mt-4 md:hidden">
           {cards.map((_, index) => (
             <button
@@ -191,7 +190,6 @@ const InfoCards = () => {
         </div>
       </div>
 
-      {/* Estilos CSS para ocultar la barra de scroll pero mantener la funcionalidad */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
