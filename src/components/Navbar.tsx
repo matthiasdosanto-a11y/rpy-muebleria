@@ -37,55 +37,24 @@ const Navbar = () => {
 
   return (
     <>
-      {/* 👇 TOPBAR AGREGADO - Aparece arriba del navbar */}
       <TopBar />
-
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          {/* Logo con efecto de intercambio - TEXTO COMPLETO */}
+          {/* Logo */}
           <a
-            href="#inicio"
-            className="
-              group
-              relative
-              flex items-center justify-center
-              w-[240px] h-12
-              cursor-pointer
-              overflow-hidden
-            "
+            href="/"
+            className="group relative flex items-center justify-center w-[240px] h-12 cursor-pointer overflow-hidden"
           >
-            {/* RPY (visible por defecto, desaparece al hacer hover) */}
-            <div className="
-              absolute inset-0
-              flex items-center justify-center
-              transition-all duration-300 ease-in-out
-              group-hover:opacity-0 group-hover:scale-95
-            ">
+            {/* RPY */}
+            <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:scale-95">
               <div className="flex items-end">
-                <span className="font-['Arial'] font-black text-primary text-4xl leading-none">
-                  R
-                </span>
-                <span className="font-['Poppins'] font-black text-primary text-2xl leading-none ml-1">
-                  PY
-                </span>
+                <span className="font-['Arial'] font-black text-primary text-4xl leading-none">R</span>
+                <span className="font-['Poppins'] font-black text-primary text-2xl leading-none ml-1">PY</span>
               </div>
             </div>
-
-            {/* MUEBLERIA SOLIDARIA (oculto por defecto, aparece al hacer hover) - AHORA COMPLETO */}
-            <div className="
-              absolute inset-0
-              flex items-center justify-center
-              transition-all duration-300 ease-in-out
-              opacity-0 scale-95
-              group-hover:opacity-100 group-hover:scale-100
-            ">
-              <span className="
-                font-['Poppins'] font-bold
-                text-primary text-sm
-                tracking-[0.15em]
-                whitespace-nowrap
-                px-2
-              ">
+            {/* MUEBLERIA SOLIDARIA */}
+            <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100">
+              <span className="font-['Poppins'] font-bold text-primary text-sm tracking-[0.15em] whitespace-nowrap px-2">
                 MUEBLERÍA SOLIDARIA
               </span>
             </div>
@@ -131,7 +100,7 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* User - Abre el modal */}
+            {/* User */}
             <button
               onClick={() => setIsAuthModalOpen(true)}
               className="p-2 text-foreground/80 hover:text-primary transition-colors"
@@ -149,7 +118,7 @@ const Navbar = () => {
               >
                 <ShoppingCart size={20} />
                 {totalItems > 0 && (
-                  <span className="absolute right-0 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-accent-foreground text-[10px] font-bold shadow-sm translate-x-1/4 -translate-y-1/4">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-accent-foreground text-[10px] font-bold">
                     {totalItems}
                   </span>
                 )}
@@ -157,7 +126,7 @@ const Navbar = () => {
 
               {/* Cart dropdown */}
               {cartOpen && (
-                <div className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl bg-card border border-border shadow-2xl animate-fade-in-up z-50">
+                <div className="absolute right-0 top-12 w-80 sm:w-96 rounded-xl bg-card border border-border shadow-2xl z-50">
                   <div className="p-4 border-b border-border flex items-center justify-between">
                     <h3 className="font-display font-bold text-foreground text-lg">Tu Carrito</h3>
                     {items.length > 0 && (
@@ -228,7 +197,7 @@ const Navbar = () => {
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block w-full text-center rounded-lg bg-whatsapp px-6 py-3 text-sm font-bold text-whatsapp-foreground hover:opacity-90 transition-opacity uppercase tracking-wide mt-2"
+                          className="block w-full text-center rounded-lg bg-whatsapp px-6 py-3 text-sm font-bold text-white hover:opacity-90 transition-opacity uppercase tracking-wide"
                         >
                           Finalizar por WhatsApp
                         </a>
@@ -252,7 +221,7 @@ const Navbar = () => {
               WhatsApp
             </a>
 
-            {/* Mobile menu */}
+            {/* Mobile menu button */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="md:hidden p-2 rounded-full hover:bg-secondary text-foreground/70"
@@ -265,7 +234,7 @@ const Navbar = () => {
 
         {/* Mobile dropdown */}
         {mobileOpen && (
-          <nav className="md:hidden border-t border-border bg-card px-4 pb-4 pt-2 animate-fade-in-up">
+          <nav className="md:hidden border-t border-border bg-card px-4 pb-4 pt-2">
             {navItems.map((item) => (
               <a
                 key={item.label}
@@ -286,7 +255,6 @@ const Navbar = () => {
           </nav>
         )}
 
-        {/* Modal de autenticación */}
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       </header>
     </>
