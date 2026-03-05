@@ -19,7 +19,7 @@ const CategoriesSection = () => (
         <a
           key={cat.name}
           href="#catalogo"
-          className="group relative rounded-xl overflow-hidden aspect-[4/3]"
+          className="group relative rounded-xl overflow-hidden aspect-[4/3] shadow-lg hover:shadow-xl transition-all duration-300 border-[3px] border-transparent hover:border-accent"
         >
           <img
             src={cat.image}
@@ -27,10 +27,10 @@ const CategoriesSection = () => (
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-6">
-            <h3 className="text-2xl font-display font-bold text-primary-foreground">{cat.name}</h3>
-            <p className="text-sm text-primary-foreground/80 mt-1">{cat.count}</p>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 p-8 w-full text-center">
+            <h3 className="text-3xl font-display font-bold text-white mb-2">{cat.name}</h3>
+            <p className="inline-block text-xs font-bold text-accent tracking-widest uppercase bg-black/40 px-3 py-1 rounded backdrop-blur-sm">{cat.count}</p>
           </div>
         </a>
       ))}

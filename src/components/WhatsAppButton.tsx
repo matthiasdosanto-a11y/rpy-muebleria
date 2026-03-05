@@ -1,6 +1,8 @@
+import { WHATSAPP_LINKS } from "@/constants/site";
+
 const WhatsAppButton = () => (
   <a
-    href="https://wa.me/1234567890"
+    href={WHATSAPP_LINKS.base}
     target="_blank"
     rel="noopener noreferrer"
     className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-whatsapp text-whatsapp-foreground shadow-lg hover:scale-110 transition-transform"

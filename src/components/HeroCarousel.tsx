@@ -37,7 +37,7 @@ const HeroCarousel = () => {
   }, [next]);
 
   return (
-    <section id="inicio" className="relative h-[70vh] min-h-[450px] max-h-[650px] overflow-hidden">
+    <section id="inicio" className="relative h-[400px] sm:h-[450px] md:h-[500px] lg:h-[600px] w-full overflow-hidden">
       {slides.map((slide, i) => (
         <div
           key={i}
@@ -46,27 +46,28 @@ const HeroCarousel = () => {
           <img
             src={slide.image}
             alt={slide.title}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-center"
             loading={i === 0 ? "eager" : "lazy"}
           />
-          <div className="absolute inset-0 hero-overlay" />
+          {/* Overlay oscuro al 40% (ya definido en index.css var(--hero-overlay), pero aquí lo forzamos negro 40% según spec) */}
+          <div className="absolute inset-0 bg-black/40" />
         </div>
       ))}
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto h-full flex flex-col justify-center px-6 md:px-12">
-        <span className="inline-block w-fit rounded bg-foreground/20 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-foreground backdrop-blur-sm mb-4">
+      <div className="relative z-10 container mx-auto h-full flex flex-col justify-start pt-12 md:pt-16 pl-10 md:pl-14 pr-6 md:pr-12">
+        <span className="inline-block w-fit rounded bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent backdrop-blur-sm mb-4">
           {slides[current].tag}
         </span>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-primary-foreground mb-4 animate-fade-in-up" key={`title-${current}`}>
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold text-white mb-4 animate-fade-in-up" key={`title-${current}`}>
           {slides[current].title}
         </h1>
-        <p className="max-w-lg text-base md:text-lg text-primary-foreground/85 leading-relaxed animate-fade-in-up" key={`desc-${current}`} style={{ animationDelay: "0.15s" }}>
+        <p className="max-w-lg text-base md:text-lg text-white/90 leading-relaxed animate-fade-in-up" key={`desc-${current}`} style={{ animationDelay: "0.15s" }}>
           {slides[current].description}
         </p>
         <a
           href="#catalogo"
-          className="mt-6 inline-block w-fit rounded-full bg-accent px-6 py-3 text-sm font-bold text-accent-foreground hover:opacity-90 transition-opacity animate-fade-in-up"
+          className="mt-6 inline-block w-fit rounded-lg bg-primary px-8 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors animate-fade-in-up uppercase tracking-wide"
           style={{ animationDelay: "0.3s" }}
         >
           VER PRODUCTOS
@@ -74,10 +75,10 @@ const HeroCarousel = () => {
       </div>
 
       {/* Arrows */}
-      <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/30 backdrop-blur-sm p-2 text-primary-foreground hover:bg-card/50 transition" aria-label="Anterior">
+      <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/20 backdrop-blur-sm p-3 text-white hover:bg-primary transition-colors" aria-label="Anterior">
         <ChevronLeft size={24} />
       </button>
-      <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-card/30 backdrop-blur-sm p-2 text-primary-foreground hover:bg-card/50 transition" aria-label="Siguiente">
+      <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/20 backdrop-blur-sm p-3 text-white hover:bg-primary transition-colors" aria-label="Siguiente">
         <ChevronRight size={24} />
       </button>
 
@@ -87,7 +88,7 @@ const HeroCarousel = () => {
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`w-2.5 h-2.5 rounded-full transition-all ${i === current ? "bg-accent w-6" : "bg-primary-foreground/50"}`}
+            className={`w-2.5 h-2.5 rounded-full transition-all ${i === current ? "bg-accent w-8" : "bg-white/50"}`}
             aria-label={`Slide ${i + 1}`}
           />
         ))}
