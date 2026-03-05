@@ -18,7 +18,9 @@ const InfoCards = () => {
             <p className="font-body text-xs text-muted-foreground mb-1">Visitanos</p>
             <p className="font-body text-xs text-muted-foreground mb-6 flex-grow">Encontranos en nuestra sucursal</p>
             <a
-              href="#"
+              href="https://maps.app.goo.gl/3pgyVMa58YMMbCoaA"
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-auto block w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors uppercase tracking-wide"
             >
               Ver en Maps

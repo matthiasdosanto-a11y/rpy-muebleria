@@ -23,7 +23,17 @@ const Footer = () => (
           <h4 className="font-semibold mb-3">Contacto</h4>
           <ul className="space-y-2 text-sm text-primary-foreground/80">
             <li>📱 WhatsApp: +595 XXX XXX XXXX</li>
-            <li>📍 Teniente Ettiene y Las Residentas Fdo de la Mora Z/N</li>
+            <li>
+              📍{" "}
+              <a
+                href="https://maps.app.goo.gl/3pgyVMa58YMMbCoaA"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-primary-foreground transition-colors inline-block"
+              >
+                Teniente Ettiene y Las Residentas Fdo de la Mora Z/N
+              </a>
+            </li>
             <li>🕐 Lun a Vie: 9:00 a 17:00</li>
             <li>🕐 Sab: 9:00 a 18:00</li>
           </ul>
