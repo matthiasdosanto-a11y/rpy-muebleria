@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Search, User, Menu, X, ShoppingCart, Plus, Minus, Trash2 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import AuthModal from "./auth/AuthModal";
-import TopBar from "./TopBar"; // 👈 IMPORTAR TOPBAR
+import TopBar from "./TopBar";
 import { WHATSAPP_LINKS } from "@/constants/site";
 
 const navItems = [
@@ -42,12 +42,53 @@ const Navbar = () => {
 
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
-          {/* Logo */}
-          <a href="#inicio" className="flex flex-col leading-tight">
-            <span className="font-display text-xl font-bold text-primary tracking-wide">RPY</span>
-            <span className="text-[10px] font-body uppercase tracking-[0.2em] text-muted-foreground">
-              Mueblería Solidaria
-            </span>
+          {/* Logo con efecto de intercambio - TEXTO COMPLETO */}
+          <a
+            href="#inicio"
+            className="
+              group
+              relative
+              flex items-center justify-center
+              w-[240px] h-12
+              cursor-pointer
+              overflow-hidden
+            "
+          >
+            {/* RPY (visible por defecto, desaparece al hacer hover) */}
+            <div className="
+              absolute inset-0
+              flex items-center justify-center
+              transition-all duration-300 ease-in-out
+              group-hover:opacity-0 group-hover:scale-95
+            ">
+              <div className="flex items-end">
+                <span className="font-['Arial'] font-black text-primary text-4xl leading-none">
+                  R
+                </span>
+                <span className="font-['Poppins'] font-black text-primary text-2xl leading-none ml-1">
+                  PY
+                </span>
+              </div>
+            </div>
+
+            {/* MUEBLERIA SOLIDARIA (oculto por defecto, aparece al hacer hover) - AHORA COMPLETO */}
+            <div className="
+              absolute inset-0
+              flex items-center justify-center
+              transition-all duration-300 ease-in-out
+              opacity-0 scale-95
+              group-hover:opacity-100 group-hover:scale-100
+            ">
+              <span className="
+                font-['Poppins'] font-bold
+                text-primary text-sm
+                tracking-[0.15em]
+                whitespace-nowrap
+                px-2
+              ">
+                MUEBLERÍA SOLIDARIA
+              </span>
+            </div>
           </a>
 
           {/* Desktop nav */}
@@ -108,7 +149,7 @@ const Navbar = () => {
               >
                 <ShoppingCart size={20} />
                 {totalItems > 0 && (
-                  <span className="absolute 0 right-0 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-accent-foreground text-[10px] font-bold shadow-sm translate-x-1/4 -translate-y-1/4">
+                  <span className="absolute right-0 flex items-center justify-center w-4 h-4 rounded-full bg-accent text-accent-foreground text-[10px] font-bold shadow-sm translate-x-1/4 -translate-y-1/4">
                     {totalItems}
                   </span>
                 )}
