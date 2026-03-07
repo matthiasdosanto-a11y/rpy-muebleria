@@ -24,15 +24,18 @@ export const useChat = (currentUserEmail: string) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
+    // Normalizar email a minúsculas desde el inicio para evitar inconsistencias con RLS
+    const normalizedEmail = currentUserEmail?.toLowerCase() ?? "";
+
     // Cargar mensajes iniciales desde Supabase
     useEffect(() => {
-        if (!currentUserEmail) return;
+        if (!normalizedEmail) return;
 
         const fetchMessages = async () => {
             const { data, error } = await supabase
                 .from('chat_messages')
                 .select('*')
-                .or(`sender_email.eq.${currentUserEmail},receiver_email.eq.${currentUserEmail}`)
+                .or(`sender_email.eq.${normalizedEmail},receiver_email.eq.${normalizedEmail}`)
                 .order('timestamp_ms', { ascending: true });
 
             if (error) {
@@ -43,7 +46,7 @@ export const useChat = (currentUserEmail: string) => {
             if (data) {
                 const mappedMessages: Message[] = data.map(m => ({
                     id: m.id,
-                    chatId: m.sender_email === currentUserEmail ? m.receiver_email : m.sender_email,
+                    chatId: m.sender_email === normalizedEmail ? m.receiver_email : m.sender_email,
                     sender: m.sender_email,
                     text: m.content,
                     time: new Date(m.timestamp_ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -58,12 +61,12 @@ export const useChat = (currentUserEmail: string) => {
 
         // Suscribirse a cambios en tiempo real
         const channel = supabase
-            .channel('public:chat_messages')
+            .channel(`chat:${normalizedEmail}`)
             .on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'chat_messages',
-                filter: `receiver_email=eq.${currentUserEmail}`
+                filter: `receiver_email=eq.${normalizedEmail}`
             }, (payload) => {
                 const newMsg = payload.new;
                 const mappedMsg: Message = {
@@ -76,7 +79,11 @@ export const useChat = (currentUserEmail: string) => {
                     read: newMsg.is_read
                 };
 
-                setMessages(prev => [...prev, mappedMsg]);
+                setMessages(prev => {
+                    // Evitar duplicados si el mensaje ya fue insertado optimistamente
+                    if (prev.some(m => m.id === mappedMsg.id)) return prev;
+                    return [...prev, mappedMsg];
+                });
                 if (isSoundEnabled) playNotificationSound();
             })
             .on('postgres_changes', {
@@ -94,28 +101,29 @@ export const useChat = (currentUserEmail: string) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentUserEmail, isSoundEnabled]);
+    }, [normalizedEmail, isSoundEnabled]);
 
     const playNotificationSound = () => {
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3");
-        audio.play().catch(e => console.log("Audio play blocked"));
+        audio.play().catch(e => console.log("Audio play blocked:", e));
     };
 
     const sendMessage = async (targetChatId: string, text: string): Promise<boolean> => {
+        const trimmedText = text.trim();
+        if (!trimmedText) return false;
+
         const timestamp = Date.now();
-        // Aseguramos minúsculas para coincidir con RLS
-        const sender_email = currentUserEmail.toLowerCase();
+        const sender_email = normalizedEmail;
         const receiver_email = targetChatId.toLowerCase();
 
         const newMessageDB = {
             sender_email,
             receiver_email,
-            content: text.trim(),
+            content: trimmedText,
             timestamp_ms: timestamp,
             is_read: false
         };
 
-        // Insertar en Supabase
         const { data, error } = await supabase
             .from('chat_messages')
             .insert([newMessageDB])
@@ -132,48 +140,59 @@ export const useChat = (currentUserEmail: string) => {
                 id: m.id,
                 chatId: receiver_email,
                 sender: sender_email,
-                text: text.trim(),
+                text: trimmedText,
                 time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 timestamp: timestamp,
                 read: false
             };
-            setMessages(prev => [...prev, mappedMsg]);
+            setMessages(prev => {
+                // Evitar duplicados si realtime ya lo insertó
+                if (prev.some(msg => msg.id === mappedMsg.id)) return prev;
+                return [...prev, mappedMsg];
+            });
             return true;
         }
+
         throw new Error("No se recibió confirmación del servidor");
     };
 
     const markAsRead = async (chatId: string) => {
-        const unreadIds = messages
-            .filter(m => m.sender === chatId && m.chatId === currentUserEmail && !m.read)
-            .map(m => m.id);
+        const senderEmail = chatId.toLowerCase();
 
-        if (unreadIds.length === 0) return;
-
-        const { error } = await supabase
-            .from('chat_messages')
-            .update({ is_read: true })
-            .in('id', unreadIds);
+        // Usar la función RPC para marcar como leídos — respeta la política RLS de UPDATE
+        // que solo permite al receiver_email actualizar sus mensajes
+        const { error } = await supabase.rpc('mark_as_read', {
+            target_sender_email: senderEmail,
+            target_receiver_email: normalizedEmail
+        });
 
         if (error) {
             console.error("Error marking as read:", error);
-        } else {
-            setMessages(prev => prev.map(m =>
-                unreadIds.includes(m.id) ? { ...m, read: true } : m
-            ));
+            return;
         }
+
+        // Actualizar estado local inmediatamente
+        setMessages(prev => prev.map(m =>
+            m.sender === senderEmail && !m.read
+                ? { ...m, read: true }
+                : m
+        ));
     };
 
     const getChatMessages = (chatId: string) => {
-        return messages.filter(m => m.chatId === chatId);
+        const normalizedChatId = chatId.toLowerCase();
+        return messages.filter(m => m.chatId === normalizedChatId);
     };
 
     const getUnreadCount = (chatId: string) => {
-        return messages.filter(m => m.sender === chatId && m.chatId === currentUserEmail && !m.read).length;
+        const normalizedChatId = chatId.toLowerCase();
+        return messages.filter(
+            m => m.sender === normalizedChatId && !m.read
+        ).length;
     };
 
     const getTotalUnreadCount = () => {
-        return messages.filter(m => m.chatId === currentUserEmail && !m.read).length;
+        return messages.filter(m => m.sender !== normalizedEmail && !m.read).length;
     };
 
     return {
