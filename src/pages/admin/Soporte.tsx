@@ -70,11 +70,15 @@ export const Soporte = () => {
         const text = messageInput.trim();
         if (!text || !activeChatId) return;
 
-        const success = await sendMessage(activeChatId, text);
-        if (success) {
-            setMessageInput("");
-        } else {
-            toast.error("No se pudo enviar el mensaje. Inténtalo de nuevo.");
+        try {
+            const success = await sendMessage(activeChatId, text);
+            if (success) {
+                setMessageInput("");
+            } else {
+                toast.error("Error al enviar: Verifica tu conexión o permisos.");
+            }
+        } catch (err: any) {
+            toast.error("Error: " + (err.message || "Fallo desconocido"));
         }
     };
 

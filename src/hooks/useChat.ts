@@ -123,7 +123,7 @@ export const useChat = (currentUserEmail: string) => {
 
         if (error) {
             console.error("Error sending message:", error);
-            return false;
+            throw new Error(error.message || "Error al insertar en la base de datos");
         }
 
         if (data && data[0]) {
@@ -140,7 +140,7 @@ export const useChat = (currentUserEmail: string) => {
             setMessages(prev => [...prev, mappedMsg]);
             return true;
         }
-        return false;
+        throw new Error("No se recibió confirmación del servidor");
     };
 
     const markAsRead = async (chatId: string) => {
