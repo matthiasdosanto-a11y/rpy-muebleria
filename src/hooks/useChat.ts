@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export interface Message {
     id: string;
-    chatId: string;
-    sender: string; // email del remitente
+    chatId: string; // Email del otro usuario en la conversación
+    sender: string; // Email del remitente
     text: string;
     time: string;
     timestamp: number;
@@ -11,7 +12,7 @@ export interface Message {
 }
 
 export interface ChatThread {
-    id: string; // Para chat interno, suele ser el email del otro usuario
+    id: string;
     name: string;
     lastMessage?: string;
     time?: string;
@@ -23,77 +24,142 @@ export const useChat = (currentUserEmail: string) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isSoundEnabled, setIsSoundEnabled] = useState(true);
 
-    // Cargar mensajes iniciales
+    // Cargar mensajes iniciales desde Supabase
     useEffect(() => {
-        const stored = localStorage.getItem("rpy_chat_messages");
-        if (stored) {
-            setMessages(JSON.parse(stored));
-        }
-    }, []);
+        if (!currentUserEmail) return;
 
-    // Sincronización entre pestañas
-    useEffect(() => {
-        const handleSync = () => {
-            const stored = localStorage.getItem("rpy_chat_messages");
-            if (stored) {
-                const newMessages = JSON.parse(stored);
+        const fetchMessages = async () => {
+            const { data, error } = await supabase
+                .from('chat_messages')
+                .select('*')
+                .or(`sender_email.eq.${currentUserEmail},receiver_email.eq.${currentUserEmail}`)
+                .order('timestamp_ms', { ascending: true });
 
-                // Si el último mensaje es de otro usuario y es nuevo, sonar alerta
-                if (newMessages.length > messages.length) {
-                    const lastMsg = newMessages[newMessages.length - 1];
-                    if (lastMsg.sender !== currentUserEmail && isSoundEnabled) {
-                        playNotificationSound();
-                    }
-                }
-                setMessages(newMessages);
+            if (error) {
+                console.error("Error fetching messages:", error);
+                return;
+            }
+
+            if (data) {
+                const mappedMessages: Message[] = data.map(m => ({
+                    id: m.id,
+                    chatId: m.sender_email === currentUserEmail ? m.receiver_email : m.sender_email,
+                    sender: m.sender_email,
+                    text: m.content,
+                    time: new Date(m.timestamp_ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: m.timestamp_ms,
+                    read: m.is_read
+                }));
+                setMessages(mappedMessages);
             }
         };
-        window.addEventListener("storage", handleSync);
-        window.addEventListener("chat_updated", handleSync);
+
+        fetchMessages();
+
+        // Suscribirse a cambios en tiempo real
+        const channel = supabase
+            .channel('public:chat_messages')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'chat_messages',
+                filter: `receiver_email=eq.${currentUserEmail}`
+            }, (payload) => {
+                const newMsg = payload.new;
+                const mappedMsg: Message = {
+                    id: newMsg.id,
+                    chatId: newMsg.sender_email,
+                    sender: newMsg.sender_email,
+                    text: newMsg.content,
+                    time: new Date(newMsg.timestamp_ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: newMsg.timestamp_ms,
+                    read: newMsg.is_read
+                };
+
+                setMessages(prev => [...prev, mappedMsg]);
+                if (isSoundEnabled) playNotificationSound();
+            })
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'chat_messages'
+            }, (payload) => {
+                const updatedMsg = payload.new;
+                setMessages(prev => prev.map(m =>
+                    m.id === updatedMsg.id ? { ...m, read: updatedMsg.is_read } : m
+                ));
+            })
+            .subscribe();
+
         return () => {
-            window.removeEventListener("storage", handleSync);
-            window.removeEventListener("chat_updated", handleSync);
+            supabase.removeChannel(channel);
         };
-    }, [messages, currentUserEmail, isSoundEnabled]);
+    }, [currentUserEmail, isSoundEnabled]);
 
     const playNotificationSound = () => {
         const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3");
         audio.play().catch(e => console.log("Audio play blocked"));
     };
 
-    const sendMessage = (targetChatId: string, text: string) => {
-        const newMessage: Message = {
-            id: Date.now().toString(),
-            chatId: targetChatId,
-            sender: currentUserEmail,
-            text,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now(),
-            read: false
+    const sendMessage = async (targetChatId: string, text: string) => {
+        const timestamp = Date.now();
+        const newMessageDB = {
+            sender_email: currentUserEmail,
+            receiver_email: targetChatId,
+            content: text,
+            timestamp_ms: timestamp,
+            is_read: false
         };
 
-        const updatedMessages = [...messages, newMessage];
-        setMessages(updatedMessages);
-        localStorage.setItem("rpy_chat_messages", JSON.stringify(updatedMessages));
-        window.dispatchEvent(new Event("chat_updated"));
+        // Insertar en Supabase
+        const { data, error } = await supabase
+            .from('chat_messages')
+            .insert([newMessageDB])
+            .select();
+
+        if (error) {
+            console.error("Error sending message:", error);
+            return;
+        }
+
+        if (data && data[0]) {
+            const m = data[0];
+            const mappedMsg: Message = {
+                id: m.id,
+                chatId: targetChatId,
+                sender: currentUserEmail,
+                text: text,
+                time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                timestamp: timestamp,
+                read: false
+            };
+            setMessages(prev => [...prev, mappedMsg]);
+        }
     };
 
-    const markAsRead = (chatId: string) => {
-        const hasUnread = messages.some(m => m.sender === chatId && m.chatId === currentUserEmail && !m.read);
-        if (!hasUnread) return;
+    const markAsRead = async (chatId: string) => {
+        const unreadIds = messages
+            .filter(m => m.sender === chatId && m.chatId === currentUserEmail && !m.read)
+            .map(m => m.id);
 
-        const updatedMessages = messages.map(m =>
-            (m.sender === chatId && m.chatId === currentUserEmail)
-                ? { ...m, read: true }
-                : m
-        );
-        setMessages(updatedMessages);
-        localStorage.setItem("rpy_chat_messages", JSON.stringify(updatedMessages));
-        window.dispatchEvent(new Event("chat_updated"));
+        if (unreadIds.length === 0) return;
+
+        const { error } = await supabase
+            .from('chat_messages')
+            .update({ is_read: true })
+            .in('id', unreadIds);
+
+        if (error) {
+            console.error("Error marking as read:", error);
+        } else {
+            setMessages(prev => prev.map(m =>
+                unreadIds.includes(m.id) ? { ...m, read: true } : m
+            ));
+        }
     };
 
     const getChatMessages = (chatId: string) => {
-        return messages.filter(m => m.chatId === chatId || (m.sender === chatId && m.chatId === currentUserEmail));
+        return messages.filter(m => m.chatId === chatId);
     };
 
     const getUnreadCount = (chatId: string) => {

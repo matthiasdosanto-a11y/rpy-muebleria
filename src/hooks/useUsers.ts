@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export interface UserData {
     id: string;
@@ -9,52 +10,105 @@ export interface UserData {
     password?: string;
 }
 
-const DEFAULT_USERS: UserData[] = [
-    { id: "1", nombre: "Administrador", email: "admin@rpymuebleria.com", rol: "Administrador", estado: "Activo", password: "AdminPassword123" },
-    { id: "2", nombre: "Vendedor2", email: "vendedor2@rpymuebleria.com", rol: "Vendedor", estado: "Activo", password: "VendedorPassword2" },
-];
-
 export const useUsers = () => {
     const [users, setUsers] = useState<UserData[]>([]);
 
     useEffect(() => {
-        const stored = localStorage.getItem("rpy_users");
-        if (stored) {
-            setUsers(JSON.parse(stored));
-        } else {
-            setUsers(DEFAULT_USERS);
-            localStorage.setItem("rpy_users", JSON.stringify(DEFAULT_USERS));
-        }
-    }, []);
+        const fetchUsers = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select(`
+                    *,
+                    roles:role_id (name)
+                `);
 
-    const saveUsers = (newUsers: UserData[]) => {
-        setUsers(newUsers);
-        localStorage.setItem("rpy_users", JSON.stringify(newUsers));
-        window.dispatchEvent(new Event("users_updated"));
-    };
+            if (error) {
+                console.error("Error fetching users:", error);
+                return;
+            }
 
-    useEffect(() => {
-        const handleSync = () => {
-            const stored = localStorage.getItem("rpy_users");
-            if (stored) setUsers(JSON.parse(stored));
+            if (data) {
+                const mappedUsers: UserData[] = data.map((u: any) => ({
+                    id: u.id,
+                    // Combinamos nombre y apellido para el frontend
+                    nombre: `${u.nombre || ''} ${u.apellido || ''}`.trim() || u.email,
+                    email: u.email,
+                    // Mapeamos el ID del rol a su nombre en texto
+                    rol: u.roles?.name || 'Vendedor',
+                    estado: u.estado,
+                    password: u.password_hint || ''
+                }));
+                setUsers(mappedUsers);
+            }
         };
-        window.addEventListener("users_updated", handleSync);
-        return () => window.removeEventListener("users_updated", handleSync);
+
+        fetchUsers();
+
+        // Suscribirse a cambios en la tabla profiles
+        const channel = supabase
+            .channel('public:profiles_updates')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+                // Para simplificar y asegurar que traemos la relación de roles correcta,
+                // refrescamos la lista completa al haber cambios.
+                fetchUsers();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
 
-    const addUser = (u: UserData) => {
-        const newUsers = [...users, u];
-        saveUsers(newUsers);
+    const addUser = async (u: UserData) => {
+        // Mapeo simple de Nombre Completo a Nombre/Apellido para demostrar
+        const names = u.nombre.split(' ');
+        const nombre = names[0];
+        const apellido = names.slice(1).join(' ');
+
+        const { error } = await supabase
+            .from('profiles')
+            .insert([{
+                nombre,
+                apellido,
+                email: u.email,
+                role_id: u.rol.toLowerCase() === 'admin' ? 1 : 2,
+                estado: u.estado
+            }]);
+
+        if (error) console.error("Error adding user:", error);
     };
 
-    const updateUser = (id: string, updatedFields: Partial<UserData>) => {
-        const newUsers = users.map(u => u.id === id ? { ...u, ...updatedFields } : u);
-        saveUsers(newUsers);
+    const updateUser = async (id: string, updatedFields: Partial<UserData>) => {
+        const updateData: any = {
+            email: updatedFields.email,
+            estado: updatedFields.estado
+        };
+
+        if (updatedFields.nombre) {
+            const names = updatedFields.nombre.split(' ');
+            updateData.nombre = names[0];
+            updateData.apellido = names.slice(1).join(' ');
+        }
+
+        if (updatedFields.rol) {
+            updateData.role_id = updatedFields.rol.toLowerCase() === 'admin' ? 1 : 2;
+        }
+
+        const { error } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', id);
+
+        if (error) console.error("Error updating user:", error);
     };
 
-    const deleteUser = (id: string) => {
-        const newUsers = users.filter(u => u.id !== id);
-        saveUsers(newUsers);
+    const deleteUser = async (id: string) => {
+        const { error } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', id);
+
+        if (error) console.error("Error deleting user:", error);
     };
 
     return {

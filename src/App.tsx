@@ -12,7 +12,7 @@ import { Dashboard as AdminDashboard } from "@/pages/admin/Dashboard";
 import { Usuarios } from "@/pages/admin/Usuarios";
 import { Clientes as AdminClientes } from "@/pages/admin/Clientes";
 import { Productos as AdminProductos } from "@/pages/admin/Productos";
-import { Historial } from "@/pages/admin/Historial";
+import Historial from "@/pages/admin/Historial";
 import { Pedidos as AdminPedidos } from "@/pages/admin/Pedidos";
 import { Soporte as AdminSoporte } from "@/pages/admin/Soporte";
 
