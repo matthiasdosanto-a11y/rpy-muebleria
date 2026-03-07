@@ -28,7 +28,7 @@ export const Soporte = () => {
     // Marcar como leído cuando se selecciona un chat o llegan mensajes nuevos
     useEffect(() => {
         if (activeChatId) {
-            markAsRead(activeChatId);
+            markAsRead(activeChatId.toLowerCase());
         }
     }, [activeChatId, messages]);
 
@@ -42,10 +42,9 @@ export const Soporte = () => {
     const otherUsers = users.filter(u => u.email !== currentUserEmail);
 
     const threads = otherUsers.map(u => {
-        const chatMsgs = messages.filter(m =>
-            (m.chatId === u.email && m.sender === currentUserEmail) ||
-            (m.chatId === currentUserEmail && m.sender === u.email)
-        );
+        const normalizedOtherEmail = u.email.toLowerCase();
+        // m.chatId en useChat es siempre el email del "otro" participante
+        const chatMsgs = messages.filter(m => m.chatId === normalizedOtherEmail);
         const lastMsg = chatMsgs[chatMsgs.length - 1];
 
         return {
@@ -55,15 +54,15 @@ export const Soporte = () => {
             lastMessage: lastMsg?.text || "Sin mensajes aún",
             time: lastMsg?.time || "",
             online: u.estado === "Activo",
-            unreadCount: getUnreadCount(u.email)
+            unreadCount: getUnreadCount(normalizedOtherEmail)
         };
     }).filter(t =>
         t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const currentChat = threads.find(t => t.id === activeChatId);
-    const activeMessages = activeChatId ? getChatMessages(activeChatId) : [];
+    const currentChat = threads.find(t => t.id.toLowerCase() === activeChatId?.toLowerCase());
+    const activeMessages = activeChatId ? getChatMessages(activeChatId.toLowerCase()) : [];
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();

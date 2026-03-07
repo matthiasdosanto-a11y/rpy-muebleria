@@ -40,10 +40,8 @@ export const Soporte = () => {
     const otherUsers = users.filter(u => u.email !== currentUserEmail);
 
     const threads = otherUsers.map(u => {
-        const chatMsgs = messages.filter(m =>
-            (m.chatId === u.email && m.sender === currentUserEmail) ||
-            (m.chatId === currentUserEmail && m.sender === u.email)
-        );
+        const normalizedOtherEmail = u.email.toLowerCase();
+        const chatMsgs = messages.filter(m => m.chatId === normalizedOtherEmail);
         const lastMsg = chatMsgs[chatMsgs.length - 1];
 
         return {
@@ -60,8 +58,8 @@ export const Soporte = () => {
         t.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const currentChat = threads.find(t => t.id === activeChatId);
-    const activeMessages = activeChatId ? getChatMessages(activeChatId) : [];
+    const currentChat = threads.find(t => t.id.toLowerCase() === activeChatId?.toLowerCase());
+    const activeMessages = activeChatId ? getChatMessages(activeChatId.toLowerCase()) : [];
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
