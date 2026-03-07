@@ -15,29 +15,36 @@ export const useUsers = () => {
 
     useEffect(() => {
         const fetchUsers = async () => {
-            const { data, error } = await supabase
+            // 1. Simplificamos la consulta para evitar errores de relación complejos
+            const { data: profiles, error: profError } = await supabase
                 .from('profiles')
-                .select(`
-                    *,
-                    roles:role_id (name)
-                `);
+                .select('*');
 
-            if (error) {
-                console.error("Error fetching users:", error);
+            const { data: roles, error: rolesError } = await supabase
+                .from('roles')
+                .select('*');
+
+            if (profError) {
+                console.error("Error fetching users:", profError.message);
                 return;
             }
 
-            if (data) {
-                const mappedUsers: UserData[] = data.map((u: any) => ({
+            if (profiles) {
+                // Creamos un mapa de roles para búsqueda rápida [ID: Nombre]
+                const roleMap = new Map(roles?.map(r => [r.id, r.name]) || []);
+
+                const mappedUsers: UserData[] = profiles.map((u: any) => ({
                     id: u.id,
                     // Combinamos nombre y apellido para el frontend
                     nombre: `${u.nombre || ''} ${u.apellido || ''}`.trim() || u.email,
                     email: u.email,
-                    // Mapeamos el ID del rol a su nombre en texto
-                    rol: u.roles?.name || 'Vendedor',
+                    // Mapeamos el ID del rol a su nombre en texto usando nuestro mapa
+                    rol: roleMap.get(u.role_id) || 'Vendedor',
                     estado: u.estado,
                     password: u.password_hint || ''
                 }));
+
+                console.log("Usuarios cargados en frontend:", mappedUsers);
                 setUsers(mappedUsers);
             }
         };
@@ -48,8 +55,6 @@ export const useUsers = () => {
         const channel = supabase
             .channel('public:profiles_updates')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-                // Para simplificar y asegurar que traemos la relación de roles correcta,
-                // refrescamos la lista completa al haber cambios.
                 fetchUsers();
             })
             .subscribe();
@@ -60,7 +65,6 @@ export const useUsers = () => {
     }, []);
 
     const addUser = async (u: UserData) => {
-        // Mapeo simple de Nombre Completo a Nombre/Apellido para demostrar
         const names = u.nombre.split(' ');
         const nombre = names[0];
         const apellido = names.slice(1).join(' ');
@@ -75,7 +79,10 @@ export const useUsers = () => {
                 estado: u.estado
             }]);
 
-        if (error) console.error("Error adding user:", error);
+        if (error) {
+            console.error("Error adding user:", error.message);
+            throw error;
+        }
     };
 
     const updateUser = async (id: string, updatedFields: Partial<UserData>) => {
@@ -99,7 +106,10 @@ export const useUsers = () => {
             .update(updateData)
             .eq('id', id);
 
-        if (error) console.error("Error updating user:", error);
+        if (error) {
+            console.error("Error updating user:", error.message);
+            throw error;
+        }
     };
 
     const deleteUser = async (id: string) => {
@@ -108,7 +118,10 @@ export const useUsers = () => {
             .delete()
             .eq('id', id);
 
-        if (error) console.error("Error deleting user:", error);
+        if (error) {
+            console.error("Error deleting user:", error.message);
+            throw error;
+        }
     };
 
     return {
