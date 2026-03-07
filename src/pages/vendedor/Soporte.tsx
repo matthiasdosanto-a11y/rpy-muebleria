@@ -3,6 +3,7 @@ import { User, Paperclip, Send, Search, MessageSquare, Volume2, VolumeX, Check, 
 import { useChat } from "@/hooks/useChat";
 import { useUsers } from "@/hooks/useUsers";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 export const Soporte = () => {
     const [currentUserEmail, setCurrentUserEmail] = useState("vendedor2@rpymuebleria.com");
@@ -62,11 +63,17 @@ export const Soporte = () => {
     const currentChat = threads.find(t => t.id === activeChatId);
     const activeMessages = activeChatId ? getChatMessages(activeChatId) : [];
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!messageInput.trim() || !activeChatId) return;
-        sendMessage(activeChatId, messageInput);
-        setMessageInput("");
+        const text = messageInput.trim();
+        if (!text || !activeChatId) return;
+
+        const success = await sendMessage(activeChatId, text);
+        if (success) {
+            setMessageInput("");
+        } else {
+            toast.error("No se pudo enviar el mensaje. Inténtalo de nuevo.");
+        }
     };
 
     return (

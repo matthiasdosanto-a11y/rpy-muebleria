@@ -101,12 +101,16 @@ export const useChat = (currentUserEmail: string) => {
         audio.play().catch(e => console.log("Audio play blocked"));
     };
 
-    const sendMessage = async (targetChatId: string, text: string) => {
+    const sendMessage = async (targetChatId: string, text: string): Promise<boolean> => {
         const timestamp = Date.now();
+        // Aseguramos minúsculas para coincidir con RLS
+        const sender_email = currentUserEmail.toLowerCase();
+        const receiver_email = targetChatId.toLowerCase();
+
         const newMessageDB = {
-            sender_email: currentUserEmail,
-            receiver_email: targetChatId,
-            content: text,
+            sender_email,
+            receiver_email,
+            content: text.trim(),
             timestamp_ms: timestamp,
             is_read: false
         };
@@ -119,22 +123,24 @@ export const useChat = (currentUserEmail: string) => {
 
         if (error) {
             console.error("Error sending message:", error);
-            return;
+            return false;
         }
 
         if (data && data[0]) {
             const m = data[0];
             const mappedMsg: Message = {
                 id: m.id,
-                chatId: targetChatId,
-                sender: currentUserEmail,
-                text: text,
+                chatId: receiver_email,
+                sender: sender_email,
+                text: text.trim(),
                 time: new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 timestamp: timestamp,
                 read: false
             };
             setMessages(prev => [...prev, mappedMsg]);
+            return true;
         }
+        return false;
     };
 
     const markAsRead = async (chatId: string) => {
