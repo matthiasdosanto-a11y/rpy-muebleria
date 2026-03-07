@@ -41,16 +41,24 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
             onRegisterClick={() => setView("register")}
             onForgotClick={() => setView("forgot")}
             // ✅ REDIRECCIÓN CORREGIDA Y MEJORADA
-            onSuccess={() => {
-              console.log("✅ LOGIN CORRECTO. Ejecutando onSuccess...");
-              
+            onSuccess={(roleId?: number) => {
+              console.log("✅ LOGIN CORRECTO. Ejecutando onSuccess... Role:", roleId);
+
               // 1. Cerrar modal
               onClose();
-              
-              // 2. Redirección simple y directa
+
+              // 2. Redirección simple y directa basándose en roleId
               setTimeout(() => {
-                console.log("🔄 Redirigiendo a /#/admin...");
-                window.location.href = '/#/admin';
+                if (roleId === 1) {
+                  console.log("🔄 Redirigiendo a /#/admin...");
+                  window.location.href = '/#/admin';
+                } else if (roleId === 2) {
+                  console.log("🔄 Redirigiendo a /#/vendedor...");
+                  window.location.href = '/#/vendedor';
+                } else {
+                  console.log("🔄 Redirigiendo a /#/...");
+                  window.location.href = '/#/';
+                }
               }, 100);
             }}
             onVerify={(email) => {
@@ -113,7 +121,7 @@ const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
 
       {/* Modal */}
       <div className="relative bg-background rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
-        
+
         {/* Header fijo */}
         <div className="flex justify-end p-4 border-b">
           <button

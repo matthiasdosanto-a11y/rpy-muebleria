@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 interface LoginFormProps {
   onRegisterClick: () => void;
   onForgotClick: () => void;
-  onSuccess: () => void;
+  onSuccess: (roleId?: number) => void;
   onVerify: (email: string) => void;
   siteUrl: string;
 }
@@ -32,7 +32,7 @@ const LoginForm = ({
     // 1. Validar formato y limpiar espacios
     const emailLimpio = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     if (!emailRegex.test(emailLimpio)) {
       setError("Por favor, ingresa un correo válido.");
       setIsLoading(false);
@@ -71,45 +71,53 @@ const LoginForm = ({
 
   // --- ETAPA 2: LOGIN REAL ---
   // --- ETAPA 2: LOGIN REAL CON LOGS ---
-const handlePasswordSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setIsLoading(true);
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-  console.log("🔑 Intentando login con:", email); // 👈 1. Qué email usamos
+    console.log("🔑 Intentando login con:", email); // 👈 1. Qué email usamos
 
-  const { data, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  console.log("📦 Respuesta de Supabase:", { data, error: authError }); // 👈 2. Qué responde Supabase
+    console.log("📦 Respuesta de Supabase:", { data, error: authError }); // 👈 2. Qué responde Supabase
 
-  if (authError) {
-    console.error("❌ Error de Auth:", authError.message); // 👈 3. Si hay error, cuál es
-    
-    if (authError.message.includes("Email not confirmed")) {
-      setError("Tu correo aún no está verificado. Revisa tu bandeja de entrada.");
-      onVerify(email);
-    } else if (authError.message.includes("Invalid login credentials")) {
-      setError("Contraseña incorrecta.");
+    if (authError) {
+      console.error("❌ Error de Auth:", authError.message); // 👈 3. Si hay error, cuál es
+
+      if (authError.message.includes("Email not confirmed")) {
+        setError("Tu correo aún no está verificado. Revisa tu bandeja de entrada.");
+        onVerify(email);
+      } else if (authError.message.includes("Invalid login credentials")) {
+        setError("Contraseña incorrecta.");
+      } else {
+        setError(authError.message);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (data?.session) {
+      console.log("✅ LOGIN EXITOSO. Sesión:", data.session); // 👈 4. Login OK y sesión
+      console.log("🚀 Llamando a onSuccess()..."); // 👈 5. Verificamos que se llama a onSuccess
+
+      // Consultar el role_id de events
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_id')
+        .eq('id', data.session.user.id)
+        .maybeSingle();
+
+      onSuccess(profile?.role_id);
     } else {
-      setError(authError.message);
+      console.warn("⚠️ Login OK pero sesión es nula"); // 👈 6. Caso raro: login ok sin sesión
+      setError("No se pudo iniciar sesión. Intenta de nuevo.");
     }
     setIsLoading(false);
-    return;
-  }
-
-  if (data?.session) {
-    console.log("✅ LOGIN EXITOSO. Sesión:", data.session); // 👈 4. Login OK y sesión
-    console.log("🚀 Llamando a onSuccess()..."); // 👈 5. Verificamos que se llama a onSuccess
-    onSuccess();
-  } else {
-    console.warn("⚠️ Login OK pero sesión es nula"); // 👈 6. Caso raro: login ok sin sesión
-    setError("No se pudo iniciar sesión. Intenta de nuevo.");
-  }
-  setIsLoading(false);
-};
+  };
 
   return (
     <div className="space-y-6">

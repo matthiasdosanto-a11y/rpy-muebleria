@@ -4,10 +4,11 @@ import { supabase } from '@/lib/supabaseClient';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  allowedRoleIds?: number[];
+  redirectTo?: string;
 }
 
-export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, allowedRoleIds, redirectTo = "/" }: ProtectedRouteProps) => {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -18,7 +19,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
 
         // 1. Verificar sesión
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError || !session) {
           console.warn("🛡️ [ProtectedRoute] ❌ No hay sesión activa");
           setIsAuthorized(false);
@@ -50,7 +51,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
         console.log("🛡️ [ProtectedRoute] ✅ Perfil OK. role_id:", profile.role_id);
 
         // 3. Si no requiere rol, pasar
-        if (!requiredRole) {
+        if (!allowedRoleIds || allowedRoleIds.length === 0) {
           setIsAuthorized(true);
           setIsLoading(false);
           return;
@@ -58,27 +59,13 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
 
         // 4. Verificar rol
         if (profile.role_id) {
-          const { data: role, error: roleError } = await supabase
-            .from('roles')
-            .select('name')
-            .eq('id', profile.role_id)
-            .maybeSingle();
+          console.log(`🛡️ [ProtectedRoute] 🔍 Rol Usuario: ${profile.role_id} | Permitidos: [${allowedRoleIds.join(', ')}]`);
 
-          if (roleError) {
-            console.error("🛡️ [ProtectedRoute] ❌ Error rol:", roleError);
-            setIsAuthorized(false);
-            setIsLoading(false);
-            return;
-          }
-
-          const roleName = role?.name;
-          console.log(`🛡️ [ProtectedRoute] 🔍 Rol Usuario: "${roleName}" | Requerido: "${requiredRole}"`);
-
-          if (roleName === requiredRole) {
+          if (allowedRoleIds.includes(profile.role_id)) {
             console.log("🛡️ [ProtectedRoute] 🎉 AUTORIZADO");
             setIsAuthorized(true);
           } else {
-            console.warn(`🛡️ [ProtectedRoute] 🚫 DENEGADO: "${roleName}" !== "${requiredRole}"`);
+            console.warn(`🛡️ [ProtectedRoute] 🚫 DENEGADO: ${profile.role_id} no está en [${allowedRoleIds.join(', ')}]`);
             setIsAuthorized(false);
           }
         } else {
@@ -94,7 +81,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     }; // <--- OJO: Cierra checkAuth
 
     checkAuth();
-  }, [requiredRole]); // <--- OJO: Cierra useEffect
+  }, [allowedRoleIds]); // <--- OJO: Cierra useEffect
 
   // Loading
   if (isLoading) {
@@ -107,7 +94,7 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
 
   // No autorizado
   if (!isAuthorized) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   // Autorizado
