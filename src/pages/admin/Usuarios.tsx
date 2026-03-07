@@ -45,19 +45,21 @@ export const Usuarios = () => {
         setIsModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingUser) {
-            updateUser(editingUser.id, formData);
-            toast.success("Usuario actualizado correctamente");
-        } else {
-            addUser({
-                id: Date.now().toString(),
-                ...formData
-            });
-            toast.success("Nuevo usuario creado");
+        try {
+            if (editingUser) {
+                await updateUser(editingUser.id, formData);
+                toast.success("Usuario actualizado correctamente");
+            } else {
+                await addUser(formData as any);
+                toast.success("Nuevo usuario creado");
+            }
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error("Error al procesar usuario:", error);
+            toast.error("Hubo un error al procesar la solicitud");
         }
-        setIsModalOpen(false);
     };
 
     const filteredUsers = users.filter(u =>
